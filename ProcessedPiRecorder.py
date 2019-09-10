@@ -16,7 +16,7 @@ import logging
 class ProcessedPiRecorder:
     #initialize the mf
     def __init__(self, x_resolution, y_resolution, framerate, rec_length, video_path,
-                 stereo=False, scale_factor=1, timestamp=True, callback = None):      
+                 stereo=False, scale_factor=1, timestamp=True):      
                      
         #Stereo or mono
         self.stereo = stereo
