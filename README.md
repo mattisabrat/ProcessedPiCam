@@ -3,6 +3,10 @@ A multiprocessed class of picamera for video recording.
 
 Saves timestamped images to a BigTif. Can handle stereopi videostream.
 
+## Installation
+
+      pip3 install ProcessedPiRecorder
+
 ## Basic Usage
 You have to initialize the recorder and then tell it when to start recording. 
 ### Initialize:
