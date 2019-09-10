@@ -92,11 +92,10 @@ class ProcessedPiRecorder:
                 queue.put((True, frame))
                 logging.info('Measured Framerate: %d Hz' % Hz)
                 if abs(Hz/self.framerate-1) >0.05: logging.warning('WARNING: Camera ran @ %d Hz' % Hz)
-                
                 break
                 
     #Starts the recorder            
-    def record_vid(self):
+    def recordVid(self):
         #define the queue
         self.q = multiprocessing.Queue()
 
