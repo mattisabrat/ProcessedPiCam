@@ -7,6 +7,13 @@ Saves timestamped images to a BigTif. Can handle stereopi videostream.
 
       pip3 install ProcessedPiRecorder
 
+## Requires
+
+* tifffile        - 2019.7.26    
+* picamera        - 1.13         
+* opencv-contrib-python - 3.4.4.19     
+* numpy           - 1.17.0  
+
 ## Basic Usage
 You have to initialize the recorder and then tell it when to start recording. 
 ### Initialize:
@@ -15,7 +22,7 @@ You have to initialize the recorder and then tell it when to start recording.
                                        rec_length = , tif_path = ,
                                        stereo=False, scale_factor=1, timestamp=True)
                                        
-* (x_resolution, y_resolution) - pixel dimenstion to acquired by the sensor(s)
+* (x_resolution, y_resolution) - pixel dimensions to acquired by the sensor(s)
 * framerate - desired framerate in Hz
 * rec_length - number of seconds to record
 * tif_path - file to the output big tif file
