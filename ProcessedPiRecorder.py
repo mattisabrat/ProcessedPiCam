@@ -73,7 +73,6 @@ class ProcessedPiRecorder:
         #Get the start time for latency and prep the counter variable
         counter=0
         t0 = dt.datetime.now()
-        if self.timestamp: camera.annotate_text = self.t0.strftime('%H:%M:%S:%f')
         #Read frames
         for frame in camera.capture_continuous(self.capture, format='bgra', use_video_port=True,
                                                     resize=(self.img_width, self.img_height)):
