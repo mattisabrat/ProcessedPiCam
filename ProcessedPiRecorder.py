@@ -15,7 +15,7 @@ import logging
 
 class ProcessedPiRecorder:
     #initialize the mf
-    def __init__(self, x_resolution, y_resolution, framerate, rec_length, video_path,
+    def __init__(self, x_resolution, y_resolution, framerate, rec_length, tif_path,
                  stereo=False, scale_factor=1, timestamp=True):      
                      
         #Stereo or mono
@@ -31,7 +31,7 @@ class ProcessedPiRecorder:
         #Camera recording
         self.framerate  = framerate
         self.rec_length = rec_length
-        self.video_path = video_path
+        self.video_path = tif_path
         self.timestamp  = timestamp
         
         #init the numpy array
