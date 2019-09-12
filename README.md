@@ -1,7 +1,7 @@
 # ProcessedPiRecorder
-A multiprocessed class of picamera for video recording.
+A multiprocessed class of picamera for simplified deployment of high framerate and/or stereo computer vision on raspberry pi. 
 
-Saves timestamped images to a BigTif. Can handle stereopi videostream.
+Saves frames to a BigTif.
 
 ## Installation
 
