@@ -46,6 +46,20 @@ While I do not use any positional arguments, I would recommend setting everythin
 ### Record
 
       myRecorder.recordVid()
+      
+## Workflows
+
+### No callback
+
+### 2 Process callback
+
+### 3 Processes callback
+
+## StereoPi
+
+## Optimization
+
+ProcessedPiRecorder was designed to easily implement computer vision through prebuilt callback workflows. 
 
 ## Contributors
 This code was written and is maintained by [Matt Davenport](https://github.com/mattisabrat) (mdavenport@rockefeller.edu).
