@@ -23,9 +23,9 @@ While I do not use any positional arguments, I would recommend setting everythin
       from ProcessedPiRecorder import ProcessedPiRecorder as pcr
 
       myRecorder = pcr(tif_path='', x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
-                 rec_length=0, display=True, stereo=False, timestamp=False, reportHz=False,
-                 monitor_qs= False, callback=None, cb_type=None, blocking=True,  write_tif=True,
-                 tif_compression=6)
+                       rec_length=0, display=True, stereo=False, timestamp=False, reportHz=False,
+                       monitor_qs= False, callback=None, cb_type=None, blocking=True, 
+                       write_tif=True, tif_compression=6)
                                        
 * tif_path - file to the output big tif file
 * (x_resolution, y_resolution) - pixel dimensions to acquired by the sensor(s)
