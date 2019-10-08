@@ -1,5 +1,5 @@
 # ProcessedPiRecorder
-A multiprocessed class of picamera for simplified deployment of high framerate and/or stereo computer vision on raspberry pi. 
+A multiprocessed class of picamera for simplified deployment of high framerate computer vision on raspberry pi. 
 
 Saves frames to a BigTif.
 
@@ -35,15 +35,15 @@ While I do not use any positional arguments, I would recommend setting everythin
 * display - if True, display video stream immediately prior to saving
 * stereo - if True, hflip=True, stereo_mode='side-by-side', stereo_decimate=False
 * timestamp - if True, all frames are timestapmed at aquisition
-* reportHz - if True, all frames have the current frame rate stamped at aquisition
+* report_Hz - if True, all frames have the current frame rate stamped at aquisition
 * monitor_qs - if True, all frames have all queue lengths stamped at aquisition
 * callback - if True, execute a callback function
 * cb_type - if executing a callback, dictates if using the 2 process (='2Proc') or 3 process (='3Proc') workflow
 * blocking - if True, block the main thread after spawning processes
 * write_tif - if True, saves the video stream into tif_path
-* tif_compressions - specifies the degress of image compression used by tifffile
+* tif_compression - specifies the degress of image compression used by tifffile
 
-### Run
+### Record
 
       myRecorder.recordVid()
 
