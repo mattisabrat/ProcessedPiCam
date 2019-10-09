@@ -47,19 +47,55 @@ While I do not use any positional arguments, I would recommend setting everythin
 
       myRecorder.recordVid()
       
-## Workflows
+## Queues and Callbacks
+
+ProcessedPiRecorder works by separating the acquisition, computer vision (optional), and file encoding tasks across multiple processes (cores) using the standard python multiprocessing library. These processes pass frames using multiprocessing.Queue objects, which are scoped to be inaccessible to the user so you don't muck them up. 
+
+Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (2 Process) or in its own process (3 Process). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object.
+
+### Callback structure
+
+       cb_fucntion(frame, cb_queue):
+            
+            #do some stuff top the frame
+            frame = some_fn(frame)
+            
+            #Communicate to the main process over the queue
+            cb_queue.put('HiMom')
+            
+            #Return the processed frame
+            return(frame)
 
 ### No callback
 
+Just records video.
+
+#### Parameters
+
+Default.      
+
 ### 2 Process callback
 
+Executes callback in second process prior to file encoding. 
+
+#### Parameters
+
+      callback=cb_function, cb_type='2Proc'
+      
 ### 3 Processes callback
+
+Executes the callback in its' own process.
+
+#### Parameters
+
+      callback=cb_function, cb_type='2Proc'
+      
 
 ## StereoPi
 
-## Optimization
+The StereoPi is cool, but using standard PiCamera you can't save a highframerate video to file without dropping tons of frames, ProcessedPiRecorder fixes that. Be aware that the scale_factor parameter must be used to down sample the frames. I use the following parameters as a starting point for high framerate acquisition: 
 
-ProcessedPiRecorder was designed to easily implement computer vision through prebuilt callback workflows. 
+      x_resolution=1280, y_resolution=480, scale_factor=0.3, framerate=25
 
 ## Contributors
 This code was written and is maintained by [Matt Davenport](https://github.com/mattisabrat) (mdavenport@rockefeller.edu).
