@@ -7,9 +7,9 @@ from distutils.core import setup
 setup(
   name = 'ProcessedPiRecorder',         
   packages = ['ProcessedPiRecorder'],   
-  version = '0.1.0',      
-  license='MIT',        #https://help.github.com/articles/licensing-a-repository
-  description = 'Multiprocessed picamera class',
+  version = '0.2.0',      
+  license='GPLv3',        #https://help.github.com/articles/licensing-a-repository
+  description = 'Multiprocessed picamera class for simpler and faster computer vision',
   long_description=long_description,
   long_description_content_type="text/markdown",
   author = 'Matthew Davenport',      
