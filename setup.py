@@ -16,10 +16,10 @@ setup(
   author_email = 'mdavenport@rockefeller.edu', 
   url = 'https://github.com/mattisabrat/ProcessedPiRecorder',
   install_requires=[            # I get to this in a second
-          'picamera["array"]',
-          'opencv-contrib-python ',
-          'tifffile',
-          'numpy'
+          'picamera["array"]==1.13',
+          'opencv-contrib-python==3.4.4.19',
+          'tifffile==2019.7.26',
+          'numpy==1.17.0'
       ],
   classifiers=[
     'Development Status :: 3 - Alpha',
