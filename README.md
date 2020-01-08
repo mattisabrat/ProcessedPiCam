@@ -46,7 +46,7 @@ blocking | if True, block the main thread after spawning processes
 write_tif | if True, saves the video stream into tif_path
 tif_compression | specifies the degress of image compression used by tifffile
 
-### Record
+### Start recording
 
       myRecorder.recordVid()
       
@@ -56,21 +56,29 @@ ProcessedPiRecorder works by separating the acquisition, computer vision, and fi
 
 ### Queue Structure
 
-[image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=1003&h=824)
+![image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=1006&amp;h=828)
 
 ### Callback structure
-Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (cb_type='2Proc') or in its own process (cb_type='3Proc'). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object. 
+Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (cb_type='2Proc') or in its own process (cb_type='3Proc'). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object. Buffer is a collection.deque of frames with maxlen=buffer_length.
 
        callback_fucntion(buffer, cb_queue):
+            #Make sure the deque is full
+            if len(buffer) == self.buffer_length:
+                  
+                  #do some stuff to the frame buffer
+                  frame = some_fn(buffer)
+
+                  #Communicate to the main_process over the queue
+                  cb_queue.put('HiMom')
+
+                  #Must return the processed frame
+                  return(frame)
             
-            #do some stuff to the frame buffer
-            frame = some_fn(buffer)
             
-            #Communicate to the main_process over the queue
-            cb_queue.put('HiMom')
-            
-            #Must return the processed frame
-            return(frame)
+Arg | Description
+----|------------
+buffer | a [collections.deque()]() with maxlen=buffer_length containing the last buffer_length of frames. I would advise making callback execution conditional on len(buffer) as the deque will not be full until buffer_length frames have been aquired.
+cb_queue | multiprocessing.Queue object attached to the ppr object. (myRecorder.cb_queue) Enables commication between the callback and the main_process
 
 ## StereoPi support
 
