@@ -7,10 +7,12 @@ A multiprocessed class of picamera for simplified deployment of high framerate c
 
 ## Requires
 
-* tifffile        - 2019.7.26    
-* picamera        - 1.13         
-* opencv-contrib-python - 3.4.4.19     
-* numpy           - 1.17.0  
+Library | Version
+--------|--------
+tifffile | 2019.7.26    
+picamera | 1.13         
+opencv-contrib-python | 3.4.4.19     
+numpy | 1.17.0  
 
 ## Basic Usage
 You have to initialize the recorder and then tell it when to start recording. 
