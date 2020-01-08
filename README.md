@@ -83,7 +83,7 @@ Computer vision can be easily added by means of a callback function. This functi
 Arg | Description
 ----|------------
 buffer | a collections.deque with maxlen=buffer_length containing the last buffer_length of frames. I would advise making callback execution conditional on len(buffer) as the deque will not be full until buffer_length frames have been aquired.
-cb_queue | multiprocessing.Queue object attached to the ppr object. (myRecorder.cb_queue) Enables commication between the callback and the main_process
+cb_queue | multiprocessing.Queue object attached to the ppr object (myRecorder.cb_queue). Enables comunication between the callback and the main_process.
 
 ## StereoPi support
 
