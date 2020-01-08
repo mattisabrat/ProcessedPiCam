@@ -61,7 +61,7 @@ ProcessedPiRecorder works by separating the acquisition, computer vision, and fi
 
 ### Queue Structure
 
-
+![image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=1006&h=828)
 
 ### Callback structure
 Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (cb_type='2Proc') or in its own process (cb_type='3Proc'). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object. Buffer is a collection.deque of frames with maxlen=buffer_length.
