@@ -5,7 +5,7 @@ import setuptools
 setuptools.setup(
   name = 'ProcessedPiRecorder',         
   packages = ['ProcessedPiRecorder'],   
-  version = '0.2.0',      
+  version = '0.2.1',      
   license='GPLv3',        
   description = 'Multiprocessed picamera class for simpler and faster computer vision',
   long_description=long_description,
