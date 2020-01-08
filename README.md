@@ -14,12 +14,12 @@ picamera | 1.13
 opencv-contrib-python | 3.4.4.19     
 numpy | 1.17.0  
 
+I'm sure it would work with other versions, but these are the ones used during dev.
+
 ## Basic Usage
 You have to initialize the recorder and then tell it when to start recording. 
 
 ### Initialize:
-
-While I do not use any positional arguments, I would recommend setting everything at initialization.
 
       from ProcessedPiRecorder import ProcessedPiRecorder as ppr
 
@@ -32,8 +32,8 @@ While I do not use any positional arguments, I would recommend setting everythin
 Arg | Description
 ----|------------
 tif_path | file to the output big tif file
-(x_resolution, y_resolution) | pixel dimensions to acquired by the sensor(s)
-scale_factor | sets the resize parameter at resolultion*scale_factor
+(x_resolution, y_resolution) | pixel dimensions acquired by the sensor(s), is autmatically rounded to nearest multiple of 16, or nearest multiple of 32 for StereoPi x_resolution. 
+scale_factor | sets the resize parameter at resolultion*scale_factor, neede for StereoPi
 framerate | desired framerate in Hz
 rec_length | number of seconds to record
 stereo | if True, sets up for the stereopi hflip=True, stereo_mode='side-by-side', stereo_decimate=False
@@ -45,8 +45,11 @@ monitor_qs | if True, all frames have all queue lengths stamped at aquisition
 callback | if True, execute a callback function
 cb_type | if executing a callback, specifies either the 2 process (='2Proc') or 3 process (='3Proc') workflow
 blocking | if True, block the main thread after spawning processes
-write_tif | if True, saves the video stream into tif_path
+write_vid | if True, saves the video stream into tif_path
 tif_compression | specifies the degress of image compression used by tifffile
+buffer_length | number of frames to be held in collections.deque frame buffer which is passed to the callback 
+Hz_buffer | number of frames to average over when displaying framerate (report_Hz=True)
+log_file | if path is provided, write frame log to destination, useful for debugging 
 
 ### Start recording
 
@@ -58,7 +61,7 @@ ProcessedPiRecorder works by separating the acquisition, computer vision, and fi
 
 ### Queue Structure
 
-![image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=1006&amp;h=828)
+
 
 ### Callback structure
 Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (cb_type='2Proc') or in its own process (cb_type='3Proc'). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object. Buffer is a collection.deque of frames with maxlen=buffer_length.
