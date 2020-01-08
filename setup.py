@@ -19,7 +19,8 @@ setup(
           'picamera["array"]==1.13',
           'opencv-contrib-python==3.4.4.19',
           'tifffile==2019.7.26',
-          'numpy==1.17.0'
+          'numpy==1.17.0',
+          'imageio==2.6.1'
       ],
   classifiers=[
     'Development Status :: 3 - Alpha',

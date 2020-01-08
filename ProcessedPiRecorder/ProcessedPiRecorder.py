@@ -20,7 +20,7 @@ import collections
 class ProcessedPiRecorder:
     #initialize 
     def __init__(self,
-                 tif_path, x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
+                 tif_path='', x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
                  rec_length=0, display=True, display_proc='camera_reader', stereo=False,
                  timestamp=False, report_Hz=False, monitor_qs= False,
                  callback=None, cb_type=None, blocking=True, 
@@ -155,7 +155,7 @@ class ProcessedPiRecorder:
         with iio.get_writer(vid_path, bigtiff=True, software='ProcessedPiRecorder') as tif:
                 
             #intialize our frame buffer if '2Proc'
-            if self.cb_type == '2Proc': buffer = PPR_frame_buffer(self.buffer_length)
+            if self.cb_type == '2Proc': buffer = collections.deque(maxlen=self.buffer_length)
 
             #infinite loop
             while True:
@@ -165,7 +165,7 @@ class ProcessedPiRecorder:
                     latency += 'FileWriter_in: %s__' % dt.datetime.now()
                     
                     #Write the frame to the buffer if using a 2Proc callback
-                    if self.cb_type == '2Proc': buffer.add(frame)
+                    if self.cb_type == '2Proc': buffer.append(frame)
                     
                     #Catch the break condition
                     if end is True:
@@ -174,7 +174,7 @@ class ProcessedPiRecorder:
                     #write to file
                     else:                        
                         #check if we're running the two task callback
-                        if self.cb_type == '2Proc': frame = self.callback(buffer.buffer, cb_queue, logger)
+                        if self.cb_type == '2Proc': frame = self.callback(buffer, cb_queue)
 
                         #Check if we're displaying video
                         if self.display & (self.display_proc == 'file_writer'):
@@ -188,7 +188,7 @@ class ProcessedPiRecorder:
                             latency += 'FileWriter_save: %s__' % dt.datetime.now()
 
                         #Write the log
-                        fw_logger.debug(latency)
+                        if self.log_file != None: fw_logger.debug(latency)
     
     
     def proc_callback(self, queue1, queue2, cb_queue):
@@ -209,7 +209,7 @@ class ProcessedPiRecorder:
                 buffer.append(frame)
                 
                 #execute callback
-                frame = self.callback(buffer, cb_queue, pcb_logger)
+                frame = self.callback(buffer, cb_queue)
                 latency += 'ProcCB_out: %s__' % dt.datetime.now()
                 
                 #Catch the break condition and pass the frame
