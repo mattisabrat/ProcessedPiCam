@@ -13,6 +13,7 @@ tifffile | 2019.7.26
 picamera | 1.13         
 opencv-contrib-python | 3.4.4.19     
 numpy | 1.17.0  
+imageio | 2.6.1
 
 I'm sure it would work with other versions, but these are the ones used during dev.
 
