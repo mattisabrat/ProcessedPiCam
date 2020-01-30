@@ -76,7 +76,7 @@ Computer vision can be easily added by means of a callback function. Frames are 
                   #get frame
                   frame = handler.get()
                         
-                        #make sure the handler has a new frame
+                        #make sure the handler has a new frame and the buffer has filled
                         if not handler.empty and handler.full_buffer:
                               
                               #Do something
