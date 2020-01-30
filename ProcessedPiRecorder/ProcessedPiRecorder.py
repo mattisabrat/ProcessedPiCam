@@ -10,6 +10,8 @@ import cv2
 import datetime as dt
 import logging
 import collections
+from ProcessedPiRecorder.Latency import Latency
+
 
 # Class of raspberrypi video recorder based on Picamera and multiprocessing.
 # Outputs into a big tiff appropriate for downstream use in Deep Lab Cut or other whatever.
@@ -20,16 +22,16 @@ import collections
 class ProcessedPiRecorder:
     #initialize 
     def __init__(self,
-                 tif_path='', x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
-                 rec_length=0, display=True, display_proc='camera_reader', stereo=False,
-                 timestamp=False, report_Hz=False, monitor_qs= False,
-                 callback=None, cb_type=None, blocking=True, 
-                 write_vid=True, tif_compression=6, buffer_length=1, Hz_buffer=10,
-                 log_file=None):      
+                 tif_path=None, x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
+                 rec_length=0, display_proc='camera_reader', stereo=False,
+                 timestamp=False, report_Hz=False, monitor_qs= False, Hz_buffer=10,
+                 callback=None, blocking=True, 
+                 tif_compression=6, 
+                 aquisition_log=None, latency_log=None, cb_log=None):      
         
         #Set up logging
-        i_logger = logging.getLogger('init_logger')
-        self.log_file = log_file
+        self.latency_log = latency_log
+        self.cb_log = cb_log
                      
         #Stereo or mono
         self.stereo = stereo
@@ -54,25 +56,20 @@ class ProcessedPiRecorder:
         self.capture = np.zeros((self.img_height, self.img_width, 4), dtype=np.uint8)
 
         #Callbacks
-        self.display       = display
         self.display_proc  = display_proc
         self.blocking      = blocking
         self.callback      = callback
-        self.cb_type       = cb_type
         self.monitor_qs    = monitor_qs
-        self.buffer_length = buffer_length
         self.Hz_buffer     = Hz_buffer
-        self.write_vid     = write_vid
         
-        if (callback is not None) and (cb_type not in ['2Proc','3Proc']):
-            i_logger.exception('Callback type "%s" is unsupported try "2Proc" or "3Proc"' % (self.cb_type,))                
+        
 
         
     #Reads in the video stream, timestamps, monitors framerate and passes frames
     def camera_reader(self, queue, queue_list):        
 
         #Set up logging
-        c_logger = logging.getLogger('camera_logger')
+        cam_logger = logging.getLogger('acquisition_logger')
         
         #set up the camera
         if self.stereo:
@@ -97,8 +94,8 @@ class ProcessedPiRecorder:
                                                     resize=(self.img_width, self.img_height)):
             #Track performance
             #Framerate
-            counter = counter + 1
             t2=dt.datetime.now() 
+            counter = counter + 1
             per.append((t2-t1).total_seconds())
             t1=t2
             Hz = 1/(sum(per)/len(per))
@@ -111,7 +108,10 @@ class ProcessedPiRecorder:
             Q_depth = Q_depth[:-1] #trim a comma
 
             #Variable to accumulate logs across processes
-            latency = 'Queue_depths: %s__Camera_in: %s__' % (Q_depth ,t2,)
+            lat = Latency()
+            lat.log('Queue_depths', Q_depth)
+            lat.log('Camera_reader_in', t2)
+            cam_logger.debug('t: %s__Qs: %s' % (t2, Q_depth,)) 
 
             #Annotate the frame/gather the dubugging data
             annot_str = ''
@@ -123,138 +123,127 @@ class ProcessedPiRecorder:
                 camera.annotate_background = picamera.Color('black')
          
             #Check if we're displaying video
-            if self.display & (self.display_proc == 'camera_reader'):
-                cv2.imshow('frame', frame)
+            if self.display_proc == 'camera_reader':
+                cv2.imshow('camera_reader_display', frame)
                 key = cv2.waitKey(1) & 0xFF
-                latency += 'CameraReader_display: %s__' % dt.datetime.now()
+                lat.log('Camera_reader_display')
 
             #Break if time runs out
             if elapsed > self.rec_length :
-                latency += 'Camera_out: %s__' % dt.datetime.now()
-                queue.put((True, frame, latency))
+                queue.put((True, frame, lat))
+                lat.log('Camera_reader_out')
                 
-                c_logger.info('Average Framerate: %.3f Hz' % (counter/elapsed,))
-                if abs(counter/elapsed/self.framerate-1) >0.05: c_logger.warning('Camera ONLY averaged %.3f Hz' % (counter/elapsed,))
+                cam_logger.info('Average Framerate: %.3f Hz' % (counter/elapsed,))
+                if abs(counter/elapsed/self.framerate-1) >0.05: cam_logger.warning('Camera ONLY averaged %.3f Hz' % (counter/elapsed,))
                 break
 
             else:
                 #write the frame to the queue
-                latency += 'Camera_out: %s__' % dt.datetime.now()
-                queue.put((False, frame, latency))
-                        
+                queue.put((False, frame, lat))
+                lat.log('Camera_reader_out')
+    
 
     #Write the buffer to file
-    def file_writer(self, queue, cb_queue, vid_path):
+    def file_writer(self, queue, vid_path):
 
         #Setup logging
-        fw_logger = logging.getLogger('file_writer_logger')
-        fw_logger.setLevel('DEBUG')
-        fw_logger.addHandler(logging.FileHandler(self.log_file, 'w')) #needs to ouput to here       
+        fw_logger = logging.getLogger('latency_logger')
+        if self.latency_log != None:
+            fw_logger.setLevel('DEBUG')
+            fw_logger.addHandler(logging.FileHandler(self.latency_log, 'w')) #needs to ouput to here       
 
-        #define our tiff writer
-        with iio.get_writer(vid_path, bigtiff=True, software='ProcessedPiRecorder') as tif:
-                
-            #intialize our frame buffer if '2Proc'
-            if self.cb_type == '2Proc': buffer = collections.deque(maxlen=self.buffer_length)
+        if vid_path != None: #Save video
+            #define our tiff writer
+            with iio.get_writer(vid_path, bigtiff=True, software='ProcessedPiRecorder') as tif:
 
+                #infinite loop
+                while True:
+                    #Grab the next entry in the queue
+                    if not queue.empty():
+                        end, frame, lat = queue.get()
+                        lat.log('File_writer_in')
+
+                        #Check if we're displaying video
+                        if self.display_proc == 'file_writer' & (frame is not None):
+                           cv2.imshow('file_writer_display', frame)
+                           key = cv2.waitKey(1) & 0xFF
+                           lat.log('File_writer_display')
+                            
+                        #save to tif
+                        if frame is not None:
+                            tif.append_data(frame)
+                            lat.log('File_writer_saved')
+
+                        #Write the log
+                        fw_logger.debug(latency)
+
+                        #Catch the break condition
+                        if end is True: break
+
+        else: #no saving
             #infinite loop
             while True:
                 #Grab the next entry in the queue
                 if not queue.empty():
-                    end, frame, latency = queue.get()
-                    latency += 'FileWriter_in: %s__' % dt.datetime.now()
-                    
-                    #Write the frame to the buffer if using a 2Proc callback
-                    if self.cb_type == '2Proc': buffer.append(frame)
-                    
-                    #Catch the break condition
-                    if end is True:
-                        break
-                    
-                    #write to file
-                    else:                        
-                        #check if we're running the two task callback
-                        if self.cb_type == '2Proc': frame = self.callback(buffer, cb_queue)
-
-                        #Check if we're displaying video
-                        if self.display & (self.display_proc == 'file_writer'):
-                            cv2.imshow('frame', frame)
-                            key = cv2.waitKey(1) & 0xFF
-                            latency += 'FileWriter_display: %s__' % dt.datetime.now()
+                    end, frame, lat = queue.get()
+                    lat.log('File_writer_in')
                         
-                        #save to tif
-                        if self.write_vid:
-                            tif.append_data(frame)
-                            latency += 'FileWriter_save: %s__' % dt.datetime.now()
+                    #Write the frame to the buffer if using a 2Proc callback
+                    if self.cb_type == '2Proc': buffer.append(frame) 
 
-                        #Write the log
-                        if self.log_file != None: fw_logger.debug(latency)
-    
+                    #Check if we're displaying video
+                    if self.display_proc == 'file_writer' & (frame is not None):
+                        cv2.imshow('file_writer_display', frame)
+                        key = cv2.waitKey(1) & 0xFF
+                        lat.log('File_writer_display')
+
+                    #Write the log
+                    fw_logger.debug(latency)
+
+                    #Catch the break condition
+                    if end is True: break
     
     def proc_callback(self, queue1, queue2, cb_queue):
-        #Set up logging
-        pcb_logger = logging.getLogger('proccb_logger')
+        #Set up a logger
+        cb_logger = logging.getLogger('callback_logger')
+        if self.cb_log != None:
+            cb_logger.setLevel('DEBUG')
+            cb_logger.addHandler(logging.FileHandler(self.cb_log, 'w')) #needs to ouput to here       
 
-
-        #init the buffer
-        buffer = collections.deque(maxlen=self.buffer_length)
-
-        #infinite loop
-        while True:
-            #Grab the next entry in the queue
-            if not queue1.empty():
-                #get frame
-                end, frame, latency = queue1.get()
-                latency += 'ProcCB_in: %s__' % dt.datetime.now()
-                buffer.append(frame)
-                
-                #execute callback
-                frame = self.callback(buffer, cb_queue)
-                latency += 'ProcCB_out: %s__' % dt.datetime.now()
-                
-                #Catch the break condition and pass the frame
-                if end is True:
-                    queue2.put((True, frame, latency))
-                    break
-                else:
-                    queue2.put((False, frame, latency))
+        #Run provided callback
+        self.callback(queue1, queue2, cb_queue, cb_logger)
                 
     #Starts the recorder            
     def recordVid(self):
-        #Handle the callback options to setup the queues and args
-        #mandatory queue
+        #setup the queues and args
+        #queues
         queue1        = mp.Queue()
+        queue2        = mp.Queue()
         self.cb_queue = mp.Queue()
-        
-        if self.cb_type == '3Proc':
-            #queues
-            queue2 = mp.Queue()
             
-            #args
-            args1 = (queue1, [queue1, queue2, self.cb_queue],)
-            args2 = (queue2, self.cb_queue, self.video_path,)
-            args3 = (queue1, queue2, self.cb_queue,)
-
-        else:
-            #args
-            args1 = (queue1, [queue1, self.cb_queue],)
-            args2 = (queue1, self.cb_queue, self.video_path,)
-
+        #args
+        args1 = (queue1, [queue1, queue2, self.cb_queue],)
+        args2 = (queue2, self.video_path,)
+        args3 = (queue1, queue2, self.cb_queue,)
+      
         #Run it
         try:
+            #Init
             p1 = mp.Process(target=self.camera_reader, args=args1)
             p2 = mp.Process(target=self.file_writer,   args=args2)
-            if self.cb_type == '3Proc':
-                p3 = mp.Process(target=self.proc_callback, args=args3)
+            p3 = mp.Process(target=self.proc_callback, args=args3)
+
+            #Start
             p1.start()
             p2.start()
-            if self.cb_type == '3Proc':
-                p3.start()
+            p3.start()
+
+            #Blocking?
             if self.blocking:
                 p1.join()
                 p2.join()
-                if self.cb_type == '3Proc':
-                    p3.join()
-            
+                p3.join()
+
+        #handle exceptions    
         except Exception as e:
-            logging.exception(e)
+            logging.error(e)
