@@ -1,5 +1,5 @@
 # ProcessedPiRecorder
-A multiprocessed class of picamera for simplified deployment of high framerate computer vision on raspberry pi. 
+A multiprocessed wrapper of PiCamera for simplified deployment of high framerate computer vision on raspberry pi. 
 
 ## Installation
 
@@ -24,12 +24,11 @@ You have to initialize the recorder and then tell it when to start recording.
 
       from ProcessedPiRecorder import ProcessedPiRecorder as ppr
 
-      myRecorder = ppr(tif_path, x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
-                       rec_length=0, display=True, display_proc='camera_reader', stereo=False,
-                       timestamp=False, report_Hz=False, monitor_qs= False,
-                       callback=None, cb_type=None, blocking=True, 
-                       write_vid=True, tif_compression=6, buffer_length=1, Hz_buffer=10,
-                       log_file=None)
+      myRecorder = ppr(tif_path=None, x_resolution=0, y_resolution=0, scale_factor=1, framerate=0, 
+                       rec_length=0, display_proc='camera_reader', stereo=False,
+                       timestamp=False, report_Hz=False, monitor_qs= False, Hz_buffer=10,
+                       callback=None, blocking=True,  tif_compression=6, 
+                       latency_log=None, aquisition_log=None,  cb_log=None)
 Arg | Description
 ----|------------
 tif_path | file to the output big tif file
@@ -38,19 +37,18 @@ scale_factor | sets the resize parameter at resolultion*scale_factor, neede for 
 framerate | desired framerate in Hz
 rec_length | number of seconds to record
 stereo | if True, sets up for the stereopi hflip=True, stereo_mode='side-by-side', stereo_decimate=False
-display | if True, display video stream 
 display_proc | specifies which process should be used to display. Either 'camera_reader' or 'file_writer'. 
 timestamp | if True, all frames are timestapmed at aquisition
 report_Hz | if True, all frames have the current frame rate stamped at aquisition
 monitor_qs | if True, all frames have all queue lengths stamped at aquisition
 callback | if True, execute a callback function
-cb_type | if executing a callback, specifies either the 2 process (='2Proc') or 3 process (='3Proc') workflow
 blocking | if True, block the main thread after spawning processes
-write_vid | if True, saves the video stream into tif_path
 tif_compression | specifies the degress of image compression used by tifffile
-buffer_length | number of frames to be held in collections.deque frame buffer which is passed to the callback 
 Hz_buffer | number of frames to average over when displaying framerate (report_Hz=True)
-log_file | if path is provided, write frame log to destination, useful for debugging 
+latency_log | if specified, write the latency log to path
+acquisition_log | if specified, writes the acquisition log to path
+cb_log | if specified, writes the callback log to path
+
 
 ### Start recording
 
@@ -58,33 +56,41 @@ log_file | if path is provided, write frame log to destination, useful for debug
       
 ## Queues and Callbacks
 
-ProcessedPiRecorder works by separating the acquisition, computer vision, and file encoding tasks across multiple python processes using the standard python multiprocessing library. These processes pass frames using multiprocessing.Queue objects which are scoped to be inaccessible to the user so you don't muck them up. 
+ProcessedPiRecorder works by separating the acquisition, computer vision, and file encoding tasks across multiple python processes using the standard python multiprocessing library. These processes pass frames using multiprocessing.Queue objects which are managed by QueueHandler objects so you don't muck them up. 
 
 ### Queue Structure
 
-![image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=1006&h=828)
+![image](https://docs.google.com/drawings/d/e/2PACX-1vTXOWzwBbJXiHAlQ2O2yern1L8TyWnSlfooWjhQqmJVHwOtCrFQGigZHY8wW8yBQOjxfdXcpGitcOYS/pub?w=916&h=727)
 
 ### Callback structure
-Computer vision can be easily added by means of a callback function. This function can be executed in same process as the file encoding (cb_type='2Proc') or in its own process (cb_type='3Proc'). In either case the callback can communicate with the main process, if unblocked, using the cb_queue attached to the ProcessedPiRecorder object. Buffer is a collection.deque of frames with maxlen=buffer_length.
+Computer vision can be easily added by means of a callback function. Frames are recieved from and placed into the queues using a ppr.QueueHandler object which also provides a buffer of frames for applications that require a series of frames. 
 
-       callback_fucntion(buffer, cb_queue):
-            #Make sure the deque is full
-            if len(buffer) == self.buffer_length:
-                  
-                  #do some stuff to the frame buffer
-                  frame = some_fn(buffer)
+       import ProcessedPiRecorder as ppr
 
-                  #Communicate to the main_process over the queue
-                  cb_queue.put('HiMom')
-
-                  #Must return the processed frame
-                  return(frame)
+       callback_fucntion(queue1, queue2, cb_queue, cb_logger):
+            #inits    
+            handler = ppr.QueueHandler(queue1, queue2, 2)
+            
+            #infinite loop
+            while True:
+                  #get frame
+                  frame = handler.get()
+                        
+                        #make sure the handler has a new frame
+                        if not handler.empty and handler.full_buffer:
+                              
+                              #Do something
+                              do_something_to(frame)
+                              
+                              #Save the frame
+                              handler.put()
             
             
 Arg | Description
 ----|------------
-buffer | a collections.deque with maxlen=buffer_length containing the last buffer_length of frames. I would advise making callback execution conditional on len(buffer) as the deque will not be full until buffer_length frames have been aquired.
-cb_queue | multiprocessing.Queue object attached to the ppr object (myRecorder.cb_queue). Enables comunication between the callback and the main_process.
+queue1 | recieves frames. Let a QueueHandler deal with it  
+queue2 | sends frames to be saved. Let a QueueHandler deal with it
+cb_queue | multiprocessing.Queue object attached to the ppr object (myRecorder.cb_queue), enables comunication between the callback and the main_process
 
 ## StereoPi support
 
