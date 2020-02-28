@@ -66,7 +66,7 @@ class ProcessedPiRecorder:
 
         
     #Reads in the video stream, timestamps, monitors framerate and passes frames
-    def camera_reader(self, queue, queue_list):        
+    def camera_reader(self, end_queue, queue, queue_list):        
 
         #Set up logging
         cam_logger = logging.getLogger('acquisition_logger')
@@ -128,8 +128,8 @@ class ProcessedPiRecorder:
                 key = cv2.waitKey(1) & 0xFF
                 lat.log('Camera_reader_display')
 
-            #Break if time runs out
-            if elapsed > self.rec_length :
+            #Break if time runs our or stop has been given
+            if (elapsed > self.rec_length) or not end_queue.empty():
                 queue.put((True, frame, lat))
                 lat.log('Camera_reader_out')
                 
@@ -217,12 +217,13 @@ class ProcessedPiRecorder:
     def recordVid(self):
         #setup the queues and args
         #queues
-        queue1        = mp.Queue()
-        queue2        = mp.Queue()
-        self.cb_queue = mp.Queue()
+        self.end_queue = mp.Queue()
+        queue1         = mp.Queue()
+        queue2         = mp.Queue()
+        self.cb_queue  = mp.Queue()
             
         #args
-        args1 = (queue1, [queue1, queue2, self.cb_queue],)
+        args1 = (self.end_queue, queue1, [queue1, queue2, self.cb_queue],)
 
         #if no callback, bypass it by routing queue1 into the file_writer
         if self.callback != None: args2 = (queue2, self.video_path,)
@@ -251,3 +252,8 @@ class ProcessedPiRecorder:
         #handle exceptions    
         except Exception as e:
             logging.error(e)
+
+    #Stop the recorder prematurely
+    def stopVid(self):
+        self.end_queue.put(True)
+        

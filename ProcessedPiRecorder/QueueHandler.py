@@ -53,7 +53,7 @@ class QueueHandler:
         if len(self.frames.buffer) != self.max_len: self.full_buffer = False
         else: self.full_buffer = True
 
-    #Put into q2, check end condition
+    #Put into q2
     def put(self,idx=0):
 
         self.lats.buffer[idx].log('Queue_handler_out')        
