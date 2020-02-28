@@ -223,26 +223,30 @@ class ProcessedPiRecorder:
             
         #args
         args1 = (queue1, [queue1, queue2, self.cb_queue],)
-        args2 = (queue2, self.video_path,)
+
+        #if no callback, bypass it by routing queue1 into the file_writer
+        if self.callback != None: args2 = (queue2, self.video_path,)
+        else: args2 = (queue1, self.video_path,)
+
         args3 = (queue1, queue2, self.cb_queue,)
       
         #Run it
         try:
             #Init
             p1 = mp.Process(target=self.camera_reader, args=args1)
-            p2 = mp.Process(target=self.file_writer,   args=args2)
-            p3 = mp.Process(target=self.proc_callback, args=args3)
+            if self.video_path != None: p2 = mp.Process(target=self.file_writer,   args=args2)
+            if self.callback != None:   p3 = mp.Process(target=self.proc_callback, args=args3)
 
             #Start
             p1.start()
-            p2.start()
-            p3.start()
+            if self.video_path != None: p2.start()
+            if self.callback != None:   p3.start()
 
             #Blocking?
             if self.blocking:
                 p1.join()
-                p2.join()
-                p3.join()
+                if self.video_path != None: p2.join()
+                if self.callback != None:   p3.join()
 
         #handle exceptions    
         except Exception as e:
