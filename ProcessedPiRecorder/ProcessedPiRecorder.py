@@ -66,7 +66,7 @@ class ProcessedPiRecorder:
 
         
     #Reads in the video stream, timestamps, monitors framerate and passes frames
-    def camera_reader(self, end_queue, queue, queue_list):        
+    def camera_reader(self, pass_frame, end_queue, queue, queue_list):        
 
         #Set up logging
         cam_logger = logging.getLogger('acquisition_logger')
@@ -130,7 +130,7 @@ class ProcessedPiRecorder:
 
             #Break if time runs our or stop has been given
             if (elapsed > self.rec_length) or (not end_queue.empty()):
-                queue.put((True, frame, lat))
+                if pass_frame: queue.put((True, frame, lat))
                 lat.log('Camera_reader_out')
                 
                 cam_logger.info('Average Framerate: %.3f Hz' % (counter/elapsed,))
@@ -139,7 +139,7 @@ class ProcessedPiRecorder:
 
             else:
                 #write the frame to the queue
-                queue.put((False, frame, lat))
+                if pass_frame: queue.put((False, frame, lat))
                 lat.log('Camera_reader_out')
     
 
@@ -152,53 +152,30 @@ class ProcessedPiRecorder:
             fw_logger.setLevel('DEBUG')
             fw_logger.addHandler(logging.FileHandler(self.latency_log, 'w')) #needs to ouput to here       
 
-        if vid_path != None: #Save video
-            #define our tiff writer
-            with iio.get_writer(vid_path, bigtiff=True, software='ProcessedPiRecorder') as tif:
 
-                #infinite loop
-                while True:
-                    #Grab the next entry in the queue
-                    if not queue.empty():
-                        end, frame, lat = queue.get()
-                        lat.log('File_writer_in')
+        #define our tiff writer
+        with iio.get_writer(vid_path, bigtiff=True, software='ProcessedPiRecorder') as tif:
 
-                        #Check if we're displaying video
-                        if self.display_proc == 'file_writer' & (frame is not None):
-                           cv2.imshow('file_writer_display', frame)
-                           key = cv2.waitKey(1) & 0xFF
-                           lat.log('File_writer_display')
-                            
-                        #save to tif
-                        if frame is not None:
-                            tif.append_data(frame)
-                            lat.log('File_writer_saved')
-
-                        #Write the log
-                        fw_logger.debug(latency)
-
-                        #Catch the break condition
-                        if end is True: break
-
-        else: #no saving
             #infinite loop
             while True:
                 #Grab the next entry in the queue
                 if not queue.empty():
                     end, frame, lat = queue.get()
                     lat.log('File_writer_in')
-                        
-                    #Write the frame to the buffer if using a 2Proc callback
-                    if self.cb_type == '2Proc': buffer.append(frame) 
 
                     #Check if we're displaying video
-                    if self.display_proc == 'file_writer' & (frame is not None):
-                        cv2.imshow('file_writer_display', frame)
-                        key = cv2.waitKey(1) & 0xFF
-                        lat.log('File_writer_display')
+                    if self.display_proc == 'file_writer' and frame is not None:
+                       cv2.imshow('file_writer_display', frame)
+                       key = cv2.waitKey(1) & 0xFF
+                       lat.log('File_writer_display')
+                            
+                    #save to tif
+                    if frame is not None:
+                        tif.append_data(frame)
+                        lat.log('File_writer_saved')
 
                     #Write the log
-                    fw_logger.debug(latency)
+                    fw_logger.debug(lat)
 
                     #Catch the break condition
                     if end is True: break
@@ -221,9 +198,12 @@ class ProcessedPiRecorder:
         queue1         = mp.Queue()
         queue2         = mp.Queue()
         self.cb_queue  = mp.Queue()
+
+        if self.callback != None or self.video_path != None: pass_frame = True
+        else: pass_frame = False
             
         #args
-        args1 = (self.end_queue, queue1, [queue1, queue2, self.cb_queue],)
+        args1 = (pass_frame, self.end_queue, queue1, [queue1, queue2, self.cb_queue],)
 
         #if no callback, bypass it by routing queue1 into the file_writer
         if self.callback != None: args2 = (queue2, self.video_path,)
@@ -255,5 +235,5 @@ class ProcessedPiRecorder:
 
     #Stop the recorder prematurely
     def stopVid(self):
-        self.end_queue.put(True)
+        self.end_queue.put(['This does nothing'])
         
