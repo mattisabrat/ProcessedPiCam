@@ -129,7 +129,7 @@ class ProcessedPiRecorder:
                 lat.log('Camera_reader_display')
 
             #Break if time runs our or stop has been given
-            if (elapsed > self.rec_length) or not end_queue.empty():
+            if (elapsed > self.rec_length) or (not end_queue.empty()):
                 queue.put((True, frame, lat))
                 lat.log('Camera_reader_out')
                 
